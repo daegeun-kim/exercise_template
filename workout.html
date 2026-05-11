@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>박민영의 운동 계획표</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  font-size: 18px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+.container { max-width: 1200px; margin: 0 auto; }
+.header {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-radius: 20px;
+  margin-bottom: 30px;
+  color: white;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+.header h1 { font-size: 2.2em; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
+.header .subtitle { font-size: 1em; opacity: 0.7; margin-bottom: 16px; }
+.header .week-info {
+  display: inline-flex; gap: 20px;
+  background: rgba(255,255,255,0.1);
+  padding: 8px 20px; border-radius: 30px; font-size: 0.85em;
+}
+.days-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+@media (max-width: 900px) { .days-grid { grid-template-columns: 1fr; } }
+.day-card {
+  background: white; border-radius: 20px; overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.day-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0,0,0,0.15); }
+.card-header { padding: 24px 20px; color: white; position: relative; overflow: hidden; }
+
+.day-1 .card-header { background: linear-gradient(135deg, #3051e1 0%, #764ba2 100%); }
+.day-2 .card-header { background: linear-gradient(135deg, #d94fe8 0%, #f5576c 100%); }
+.day-3 .card-header { background: linear-gradient(135deg, #12b28d 0%, #14869a 100%); }
+.day-tag {
+  display: inline-block; background: rgba(255,255,255,0.25);
+  padding: 3px 10px; border-radius: 15px; font-size: 0.75em;
+  font-weight: 700; margin-bottom: 8px; letter-spacing: 1px;
+}
+.card-title { font-size: 1.5em; font-weight: 800; margin-bottom: 4px; }
+.card-subtitle { font-size: 0.85em; opacity: 0.85; }
+.exercise-list { padding: 12px; }
+.exercise-item {
+  display: flex; align-items: center;
+  padding: 12px 14px; margin-bottom: 8px; border-radius: 12px;
+  background: #f7f8fc; cursor: pointer;
+  transition: all 0.2s; gap: 10px;
+  border-left: 3px solid transparent;
+}
+.exercise-item:last-child { margin-bottom: 0; }
+.exercise-item.optional { background: #fafafa; border: 1px dashed #ddd; border-left: 3px dashed #ddd; }
+.day-1 .exercise-item:hover { background: #f0eeff; border-left-color: #667eea; }
+.day-2 .exercise-item:hover { background: #fff0f5; border-left-color: #f5576c; }
+.day-3 .exercise-item:hover { background: #f0fbff; border-left-color: #14b894; }
+.num-badge {
+  min-width: 30px; height: 30px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8em; font-weight: 700; color: white; flex-shrink: 0;
+  padding: 0 6px;
+}
+.day-1 .num-badge { background: linear-gradient(135deg, #667eea, #764ba2); }
+.day-2 .num-badge { background: linear-gradient(135deg, #f093fb, #f5576c); }
+.day-3 .num-badge { background: linear-gradient(135deg, #27cfa5, #1bbdaf); }
+.exercise-item.optional .num-badge { opacity: 0.55; }
+.exercise-info { flex: 1; min-width: 0; }
+.ex-name { font-size: 0.88em; font-weight: 700; color: #2c3e50; margin-bottom: 5px; }
+.ex-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.chip {
+  background: white; border: 1px solid #e8e8e8; border-radius: 6px;
+  padding: 2px 4px; font-size: 0.72em; color: #666; white-space: nowrap;
+}
+.chip.weight { color: #764ba2; border-color: #c9b5e8; background: #f5f0ff; }
+.chip.reps   { color: #2980b9; border-color: #aad4ee; background: #eef7ff; }
+.chip.sets   { color: #27ae60; border-color: #a9ddb9; background: #edfff4; }
+.ex-arrow { color: #ccc; font-size: 1em; flex-shrink: 0; }
+
+/* LIGHTBOX */
+#lb-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(10,10,20,0.75); z-index: 999;
+  align-items: center; justify-content: center;
+  padding: 16px; backdrop-filter: blur(6px);
+}
+#lb-overlay.show { display: flex; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.lightbox {
+  background: white; border-radius: 24px;
+  max-width: 650px; width: 100%; max-height: 90vh;
+  overflow-y: auto; position: relative;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.lb-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(0,0,0,0.08); border: none; cursor: pointer;
+  font-size: 1.1em; display: flex; align-items: center; justify-content: center;
+  z-index: 10; transition: background 0.2s;
+}
+.lb-close:hover { background: rgba(0,0,0,0.15); }
+.lb-header { padding: 26px 24px 20px; border-bottom: 1px solid #f0f0f0; }
+.lb-day-tag {
+  display: inline-block; padding: 3px 10px; border-radius: 10px;
+  font-size: 0.72em; font-weight: 700; letter-spacing: 0.5px;
+  margin-bottom: 10px; color: white;
+}
+.lb-title { font-size: 1.35em; font-weight: 800; color: #1a1a2e; margin-bottom: 14px; line-height: 1.3; }
+.lb-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stat-box { background: #f8f9ff; border-radius: 12px; padding: 12px; text-align: center; }
+.stat-val { font-size: 1em; font-weight: 800; display: block; color: #2c3e50; }
+.stat-lbl { font-size: 0.68em; color: #999; display: block; margin-top: 2px; }
+.lb-body { padding: 20px 24px 24px; }
+.muscle-tag {
+  display: inline-block; background: #f0f0f7; color: #667eea;
+  padding: 4px 12px; border-radius: 20px; font-size: 0.78em;
+  font-weight: 600; margin-bottom: 16px;
+}
+.lb-illus {
+  background: #f8f9fc; border-radius: 16px; padding: 16px;
+  margin-bottom: 20px; display: flex; align-items: center;
+  justify-content: center; min-height: 160px;
+}
+.lb-illus svg { max-height: 155px; width: auto; }
+.lb-illus img { max-width: 100%; border-radius: 8px; object-fit: contain; }
+.lb-illus.route-map { min-height: unset; background: #000; padding: 0; border-radius: 16px; overflow: hidden; }
+.lb-illus.route-map img { width: 100%; max-height: none; display: block; }
+.lb-section-title {
+  font-size: 0.78em; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: #aaa; margin-bottom: 10px;
+}
+.lb-steps { list-style: none; margin-bottom: 18px; }
+.lb-steps li {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 9px 0; border-bottom: 1px solid #f5f5f5;
+  font-size: 0.88em; line-height: 1.55; color: #444;
+}
+.lb-steps li:last-child { border-bottom: none; }
+.sn {
+  width: 24px; height: 24px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7em; font-weight: 700; color: white; flex-shrink: 0;
+}
+.lb-warn {
+  background: #fffbf0; border: 1px solid #ffd166; border-radius: 12px; padding: 14px 16px;
+}
+.lb-warn-title { font-size: 0.82em; font-weight: 700; color: #e07b00; margin-bottom: 8px; }
+.lb-warn ul { list-style: none; padding: 0; }
+.lb-warn ul li {
+  font-size: 0.82em; color: #996300; padding: 3px 0 3px 20px; position: relative;
+}
+.lb-warn ul li::before { content: '⚠'; position: absolute; left: 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>💪 박민영 운동 계획표</h1>
+    <p class="subtitle">체계적인 3일 운동 프로그램</p>
+    <div class="week-info">
+      <span>🏋️ 근력 + 유산소</span>
+      <span>📅 주 3회 권장</span>
+    </div>
+  </div>
+  <div class="days-grid" id="days-grid"></div>
+</div>
+
+<div id="lb-overlay">
+  <div class="lightbox" id="lightbox">
+    <button class="lb-close" onclick="closeLB()">✕</button>
+    <div id="lb-content"></div>
+  </div>
+</div>
+
+<script>
+const DAYS = [
+  {
+    day: 1, label: "DAY 1", title: "하체 근력", subtitle: "하체 집중 강화 훈련",
+    cls: "day-1", tagBg: "linear-gradient(135deg,#667eea,#764ba2)", accent: "#667eea",
+    exercises: [
+      {
+        name: "스미스 머신 스쿼트 (웜업)", weight: "0kg (빈 바)", reps: "10회", sets: "2세트",
+        muscle: "대퇴사두근 · 둔근 · 햄스트링", optional: false, illust: "squat",
+        steps: [
+          "발을 어깨 너비로 벌리고 스미스 머신 바 아래에 서세요.",
+          "바를 어깨(승모근) 위에 올리고 양손으로 단단히 잡으세요.",
+          "허리를 곧게 펴고 복부에 힘을 주세요.",
+          "숨을 들이쉬며 천천히 무릎을 구부려 앉으세요. 무릎이 발끝 방향을 향하게 하세요.",
+          "허벅지가 바닥과 평행이 될 때까지 내려가세요.",
+          "발뒤꿈치로 바닥을 밀며 숨을 내쉬면서 천천히 올라오세요.",
+          "웜업이므로 동작과 호흡에 집중하며 수행하세요."
+        ],
+        cautions: [
+          "무릎이 발끝보다 크게 앞으로 나가지 않도록 주의하세요.",
+          "허리가 굽지 않도록 시선은 정면을 향하세요.",
+          "발뒤꿈치가 들리지 않도록 발바닥 전체를 바닥에 붙이세요."
+        ]
+      },
+      {
+        name: "스미스 머신 스쿼트", weight: "10kg (5kg×2)", reps: "10회", sets: "2세트",
+        muscle: "대퇴사두근 · 둔근 · 햄스트링", optional: false, illust: "squat",
+        steps: [
+          "바 양쪽에 5kg 플레이트를 각각 장착하세요 (총 10kg).",
+          "발을 어깨 너비로 벌리고 발끝을 약 15~30도 바깥으로 향하게 하세요.",
+          "바를 승모근 위에 올리고 복부에 힘을 주세요.",
+          "숨을 들이쉬며 무릎을 구부려 천천히 앉으세요.",
+          "허벅지가 바닥과 평행이 될 때까지 내려가세요.",
+          "발뒤꿈치로 바닥을 강하게 밀며 올라오세요."
+        ],
+        cautions: [
+          "무릎이 안쪽으로 모이지 않도록 주의하세요 (무릎과 발끝 방향 일치).",
+          "허리를 둥글게 굽히지 마세요.",
+          "내려갈 때 2~3초 제어하며 천천히 내려가세요."
+        ]
+      },
+      {
+        name: "스미스 머신 스쿼트", weight: "20kg (10kg×2)", reps: "5~10회", sets: "3세트",
+        muscle: "대퇴사두근 · 둔근 · 햄스트링", optional: false, illust: "squat",
+        steps: [
+          "바 양쪽에 10kg 플레이트를 각각 장착하세요 (총 20kg).",
+          "무게가 증가했으므로 코어를 더욱 단단히 조이세요.",
+          "숨을 들이쉬며 복압을 느끼면서 천천히 앉으세요.",
+          "허벅지가 바닥과 평행이 될 때까지 내려가세요.",
+          "반동 없이 안정적으로 올라오세요.",
+          "컨디션에 따라 5~10회 조절하세요. 세트 간 2~3분 휴식하세요."
+        ],
+        cautions: [
+          "무게가 늘었으니 안전 핀 위치를 반드시 확인하세요.",
+          "무릎 통증이 느껴지면 즉시 중단하고 무게를 줄이세요.",
+          "세트 간 충분한 휴식(2~3분)을 취하세요."
+        ]
+      },
+      {
+        name: "레그 프레스", weight: "40kg (20kg×2)", reps: "10회", sets: "2세트",
+        muscle: "대퇴사두근 · 둔근 · 햄스트링", optional: false, illust: "legpress",
+        steps: [
+          "레그 프레스 머신에 앉아 등을 등받이에 완전히 기대세요.",
+          "발을 플랫폼에 어깨 너비로 놓으세요 (약간 위쪽이 좋습니다).",
+          "안전 핀을 해제하고 무릎을 90도 이상 구부리세요.",
+          "숨을 내쉬면서 발뒤꿈치로 플랫폼을 강하게 밀어 올리세요.",
+          "무릎을 완전히 펴지 않고 약간 구부린 상태에서 멈추세요.",
+          "천천히 무릎을 구부리며 시작 자세로 돌아오세요."
+        ],
+        cautions: [
+          "무릎을 완전히 잠그지(Lock out) 마세요 — 관절에 무리가 갑니다.",
+          "허리가 등받이에서 떨어지지 않도록 주의하세요.",
+          "발뒤꿈치가 플랫폼에서 들리지 않도록 하세요."
+        ]
+      },
+      {
+        name: "레그 익스텐션", weight: "가능한 무게", reps: "10회", sets: "2세트",
+        muscle: "대퇴사두근 (전면)", optional: true, illust: "legext",
+        steps: [
+          "레그 익스텐션 머신에 앉아 등받이에 기대세요.",
+          "발목 패드를 발목 바로 위에 위치시키세요.",
+          "양손으로 손잡이를 잡아 몸을 고정하세요.",
+          "숨을 내쉬며 무릎을 완전히 펴서 다리를 들어올리세요.",
+          "최고 지점에서 1초간 대퇴사두근을 수축하세요.",
+          "천천히 (2~3초) 내리세요."
+        ],
+        cautions: [
+          "무릎 부상이 있는 경우 이 운동은 피하세요.",
+          "지나치게 무거운 무게로 하지 마세요.",
+          "반동을 사용하지 말고 근육의 수축에 집중하세요."
+        ]
+      },
+      {
+        name: "레그 컬", weight: "가능한 무게", reps: "10회", sets: "2세트",
+        muscle: "햄스트링 (후면)", optional: true, illust: "legcurl",
+        steps: [
+          "레그 컬 머신에 엎드려 누우세요.",
+          "발목 패드가 발목 바로 위에 오도록 위치를 조정하세요.",
+          "양손으로 손잡이를 잡고 몸을 안정적으로 고정하세요.",
+          "숨을 내쉬며 발뒤꿈치를 엉덩이 쪽으로 당기세요.",
+          "최고 지점에서 1초간 햄스트링을 수축하세요.",
+          "천천히 (2~3초) 시작 자세로 내리세요."
+        ],
+        cautions: [
+          "엉덩이가 패드에서 들리지 않도록 주의하세요.",
+          "무릎 뒤쪽이 아프면 즉시 중단하세요.",
+          "내릴 때 무릎이 완전히 펴지지 않게 살짝 구부린 상태를 유지하세요."
+        ]
+      }
+    ]
+  },
+  {
+    day: 2, label: "DAY 2", title: "상체 근력", subtitle: "가슴 · 등 · 어깨 집중 훈련",
+    cls: "day-2", tagBg: "linear-gradient(135deg,#f093fb,#f5576c)", accent: "#f5576c",
+    exercises: [
+      {
+        name: "벤치 프레스", weight: "빈 바 (~20kg)", reps: "10회", sets: "5세트",
+        muscle: "대흉근 · 삼두근 · 전면 삼각근", optional: false, illust: "benchpress",
+        steps: [
+          "벤치에 눕고 눈이 바 아래에 오도록 위치를 잡으세요.",
+          "어깨 너비보다 약간 넓게 오버그립으로 바를 잡으세요.",
+          "어깨뼈를 뒤로 모아 가슴을 살짝 들어올리세요.",
+          "바를 랙에서 빼내어 가슴 위에 위치시키세요.",
+          "숨을 들이쉬며 천천히 가슴 아랫부분으로 내려오세요.",
+          "가슴에 닿을 때 잠깐 멈추고 숨을 내쉬며 밀어 올리세요."
+        ],
+        cautions: [
+          "손목이 바르게 세워지도록 (손목이 접히지 않게) 주의하세요.",
+          "팔꿈치를 너무 벌리지 마세요 (45~75도가 적당).",
+          "엉덩이가 벤치에서 떨어지지 않도록 하세요."
+        ]
+      },
+      {
+        name: "랫 풀다운", weight: "가능한 무게", reps: "15회", sets: "5세트",
+        muscle: "광배근 · 이두근 · 후면 삼각근", optional: false, illust: "latpulldown",
+        steps: [
+          "랫 풀다운 머신에 앉아 허벅지 패드로 다리를 고정하세요.",
+          "바를 어깨 너비보다 넓게 오버그립으로 잡으세요.",
+          "상체를 살짝 뒤로 기울이고 가슴을 들어올리세요.",
+          "숨을 내쉬며 팔꿈치를 아래·뒤로 당겨 바를 가슴 위로 내려오세요.",
+          "최저점에서 1초간 등 근육을 수축하세요.",
+          "천천히 팔을 펴며 시작 자세로 돌아오세요."
+        ],
+        cautions: [
+          "목 뒤로 당기는 동작은 피하세요 — 경추에 무리가 갑니다.",
+          "반동을 이용하지 말고 등 근육으로 당기는 것을 느끼세요.",
+          "팔꿈치가 너무 뒤로 빠지지 않도록 주의하세요."
+        ]
+      },
+      {
+        name: "덤벨 숄더 프레스", weight: "가능한 무게", reps: "15회", sets: "4세트",
+        muscle: "삼각근 · 삼두근 · 승모근", optional: false, illust: "shoulderpress",
+        steps: [
+          "등받이가 있는 벤치에 앉아 허리를 곧게 세우세요.",
+          "덤벨을 어깨 높이, 손바닥이 앞을 향하도록 들어올리세요.",
+          "숨을 내쉬며 팔을 위로 밀어 올리세요 (팔꿈치를 완전히 펴지 않도록).",
+          "최고 지점에서 1초간 삼각근을 수축하세요.",
+          "천천히 어깨 높이로 내려오세요.",
+          "허리를 과도하게 꺾지 않도록 코어를 유지하세요."
+        ],
+        cautions: [
+          "허리를 과도하게 꺾지 마세요 — 반동을 이용하지 마세요.",
+          "팔꿈치를 완전히 잠그지 마세요.",
+          "처음에는 가벼운 무게로 시작해 어깨를 충분히 예열하세요."
+        ]
+      },
+      {
+        name: "싯업", weight: "체중", reps: "10회", sets: "3세트",
+        muscle: "복직근 · 장요근", optional: false, illust: "situp",
+        steps: [
+          "바닥에 등을 대고 눕고 무릎을 약 90도로 구부리세요.",
+          "발바닥을 바닥에 고정하세요.",
+          "양손을 귀 옆에 살짝 대거나 가슴에 X자로 올리세요.",
+          "숨을 내쉬며 복근에 힘을 주어 상체를 무릎 방향으로 올리세요.",
+          "팔꿈치가 허벅지에 가까워질 정도로 올리세요.",
+          "천천히 내려와 어깨뼈가 바닥에 닿을 때까지 내리세요."
+        ],
+        cautions: [
+          "목에 힘을 주어 당기지 마세요 — 목 부상 위험이 있습니다.",
+          "허리 통증이 있는 경우 크런치로 대체하세요.",
+          "빠르게 하는 것보다 천천히 복근을 의식하며 수행하세요."
+        ]
+      },
+      {
+        name: "무릎 푸쉬업", weight: "체중", reps: "10회", sets: "2세트",
+        muscle: "대흉근 · 삼두근 · 전면 삼각근", optional: true, illust: "pushup",
+        steps: [
+          "무릎을 바닥에 대고 손을 어깨 너비보다 약간 넓게 짚으세요.",
+          "엉덩이를 들지 않고 머리부터 무릎까지 일직선을 유지하세요.",
+          "숨을 들이쉬며 팔꿈치를 구부려 가슴이 바닥에 가까워지도록 내려가세요.",
+          "팔꿈치 각도는 몸에서 45~60도를 유지하세요.",
+          "숨을 내쉬며 팔을 밀어 시작 자세로 돌아오세요.",
+          "동작 내내 코어(복부)에 힘을 유지하세요."
+        ],
+        cautions: [
+          "엉덩이가 위로 올라가거나 아래로 처지지 않도록 코어를 유지하세요.",
+          "손목이 불편하면 덤벨 위에 주먹을 올린 푸쉬업을 활용하세요.",
+          "충분히 익숙해지면 일반 푸쉬업으로 발전시키세요."
+        ]
+      }
+    ]
+  },
+  {
+    day: 3, label: "DAY 3", title: "유산소 운동", subtitle: "지구력 향상 런닝 훈련",
+    cls: "day-3", tagBg: "linear-gradient(135deg,#4facfe,#00c9ff)", accent: "#00aaff",
+    exercises: [
+      {
+        name: "2.1km 런닝", weight: "체중", reps: "2.1km", sets: "최대 1회 휴식",
+        muscle: "전신 유산소 · 하체 지구력 · 심폐기능", optional: false, illust: "running",
+        steps: [
+          "운동 전 5~10분 워밍업 스트레칭을 하세요 (종아리, 허벅지, 엉덩이 위주).",
+          "경로는 아래 지도를 참고하세요.",
+          "처음에는 편안하게 대화할 수 있는 페이스로 시작하세요.",
+          "최대 1회만 휴식할 수 있습니다 — 가능하면 멈추지 않고 완주를 목표로 하세요.",
+          "호흡이 너무 힘들면 빠르게 걷기로 전환하되, 완전히 멈추지는 마세요.",
+          "완주 후 5~10분 쿨다운 스트레칭과 충분한 수분 섭취를 하세요."
+        ],
+        cautions: [
+          "무릎이나 발목에 통증이 느껴지면 즉시 중단하세요.",
+          "날씨가 너무 덥거나 추울 때는 실내 트레드밀을 활용하세요.",
+          "운동 전후 충분한 수분 섭취를 잊지 마세요."
+        ]
+      }
+    ]
+  }
+];
+
+const ILLUSTS = {
+  squat: `<svg width="155" height="195" viewBox="0 0 155 195" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="62" width="139" height="9" rx="4.5" fill="#9c7c38"/>
+    <rect x="2" y="56" width="22" height="21" rx="4" fill="#6c757d" opacity="0.55"/>
+    <rect x="131" y="56" width="22" height="21" rx="4" fill="#6c757d" opacity="0.55"/>
+    <circle cx="78" cy="38" r="15" fill="#ffd4b2" stroke="#d4956a" stroke-width="2.5"/>
+    <ellipse cx="78" cy="28" rx="13" ry="7" fill="#5d4037"/>
+    <line x1="78" y1="53" x2="74" y2="92" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <line x1="66" y1="68" x2="40" y2="66" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <line x1="86" y1="68" x2="112" y2="66" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <line x1="68" y1="92" x2="44" y2="133" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <line x1="82" y1="92" x2="106" y2="133" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <line x1="44" y1="133" x2="38" y2="175" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <line x1="106" y1="133" x2="112" y2="175" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <line x1="38" y1="175" x2="22" y2="178" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <line x1="112" y1="175" x2="128" y2="178" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="44" cy="133" r="5.5" fill="#ffd4b2" stroke="#e74c3c" stroke-width="2"/>
+    <circle cx="106" cy="133" r="5.5" fill="#ffd4b2" stroke="#e74c3c" stroke-width="2"/>
+    <path d="M137 82 L137 108" stroke="#667eea" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M131 102 L137 110 L143 102" stroke="#667eea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>`,
+
+  legpress: `<svg width="210" height="155" viewBox="0 0 210 155" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="130" y="15" width="72" height="125" rx="7" fill="#e4e8ef" stroke="#bbb" stroke-width="1.5"/>
+    <rect x="135" y="22" width="62" height="45" rx="5" fill="#7f8c9a"/>
+    <rect x="25" y="92" width="75" height="18" rx="7" fill="#8e9aaf"/>
+    <rect x="12" y="46" width="18" height="55" rx="7" fill="#8e9aaf" transform="rotate(-12 12 46)"/>
+    <circle cx="30" cy="60" r="13" fill="#ffd4b2" stroke="#d4956a" stroke-width="2"/>
+    <line x1="36" y1="72" x2="68" y2="94" stroke="#444" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="68" y1="94" x2="105" y2="55" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <line x1="70" y1="100" x2="110" y2="65" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <line x1="105" y1="55" x2="134" y2="30" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <line x1="110" y1="65" x2="136" y2="42" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <rect x="130" y="20" width="20" height="14" rx="3" fill="#555" opacity="0.65"/>
+    <circle cx="105" cy="57" r="6" fill="#ffd4b2" stroke="#e74c3c" stroke-width="2"/>
+    <path d="M165 80 L182 55" stroke="#667eea" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M175 54 L183 55 L181 64" stroke="#667eea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>`,
+
+  legext: `<svg width="210" height="155" viewBox="0 0 210 155" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="65" y="82" width="80" height="18" rx="7" fill="#8e9aaf"/>
+    <rect x="135" y="28" width="18" height="58" rx="7" fill="#8e9aaf"/>
+    <rect x="130" y="98" width="28" height="52" rx="5" fill="#bbb"/>
+    <rect x="25" y="122" width="32" height="12" rx="4" fill="#e74c3c" opacity="0.7"/>
+    <circle cx="112" cy="50" r="14" fill="#ffd4b2" stroke="#d4956a" stroke-width="2"/>
+    <line x1="112" y1="64" x2="112" y2="84" stroke="#444" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="92" y1="89" x2="62" y2="89" stroke="#444" stroke-width="5.5" stroke-linecap="round"/>
+    <line x1="112" y1="89" x2="62" y2="92" stroke="#444" stroke-width="5.5" stroke-linecap="round"/>
+    <line x1="62" y1="90" x2="30" y2="126" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="62" cy="90" r="7" fill="#ffd4b2" stroke="#e74c3c" stroke-width="2"/>
+    <path d="M42 95 L26 120" stroke="#667eea" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M20 112 L26 121 L35 118" stroke="#667eea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>`,
+
+  legcurl: `<svg width="230" height="135" viewBox="0 0 230 135" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="18" y="76" width="165" height="14" rx="6" fill="#8e9aaf"/>
+    <rect x="18" y="88" width="18" height="40" rx="4" fill="#aaa"/>
+    <rect x="165" y="88" width="18" height="40" rx="4" fill="#aaa"/>
+    <rect x="162" y="52" width="22" height="12" rx="5" fill="#e74c3c" opacity="0.7"/>
+    <ellipse cx="42" cy="69" rx="15" ry="11" fill="#ffd4b2" stroke="#d4956a" stroke-width="2"/>
+    <rect x="56" y="63" width="95" height="14" rx="7" fill="#667eea" opacity="0.55"/>
+    <line x1="150" y1="70" x2="183" y2="70" stroke="#444" stroke-width="6.5" stroke-linecap="round"/>
+    <line x1="183" y1="70" x2="175" y2="40" stroke="#444" stroke-width="6.5" stroke-linecap="round"/>
+    <line x1="175" y1="70" x2="167" y2="40" stroke="#444" stroke-width="6.5" stroke-linecap="round"/>
+    <circle cx="183" cy="70" r="7" fill="#ffd4b2" stroke="#e74c3c" stroke-width="2"/>
+    <circle cx="171" cy="57" r="5" fill="#ffd4b2" stroke="#d4956a" stroke-width="1.5"/>
+    <path d="M198 72 Q210 48 178 38" stroke="#667eea" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M178 38 L185 44 M178 38 L180 47" stroke="#667eea" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>`,
+
+  benchpress: `<svg width="230" height="155" viewBox="0 0 230 155" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="28" y="105" width="170" height="14" rx="7" fill="#8e9aaf"/>
+    <rect x="38" y="117" width="13" height="33" rx="4" fill="#aaa"/>
+    <rect x="175" y="117" width="13" height="33" rx="4" fill="#aaa"/>
+    <rect x="82" y="22" width="9" height="84" rx="4" fill="#aaa"/>
+    <rect x="135" y="22" width="9" height="84" rx="4" fill="#aaa"/>
+    <rect x="18" y="64" width="190" height="10" rx="5" fill="#9c7c38"/>
+    <rect x="12" y="57" width="20" height="24" rx="4" fill="#555" opacity="0.55"/>
+    <rect x="194" y="57" width="20" height="24" rx="4" fill="#555" opacity="0.55"/>
+    <circle cx="172" cy="96" r="13" fill="#ffd4b2" stroke="#d4956a" stroke-width="2"/>
+    <rect x="48" y="87" width="115" height="20" rx="8" fill="#f093fb" opacity="0.55"/>
+    <line x1="82" y1="90" x2="82" y2="68" stroke="#444" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="144" y1="90" x2="144" y2="68" stroke="#444" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M113 69 L113 44" stroke="#f5576c" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M107 50 L113 43 L119 50" stroke="#f5576c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>`,
+
+  latpulldown: `<svg width="175" height="200" viewBox="0 0 175 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="82" y="8" width="10" height="58" rx="4" fill="#bbb"/>
+    <rect x="22" y="58" width="130" height="9" rx="4.5" fill="#9c7c38"/>
+    <line x1="28" y1="67" x2="60" y2="83" stroke="#888" stroke-width="2" stroke-dasharray="4,3"/>
+    <line x1="148" y1="67" x2="116" y2="83" stroke="#888" stroke-width="2" stroke-dasharray="4,3"/>
+    <rect x="52" y="148" width="72" height="16" rx="7" fill="#8e9aaf"/>
+    <rect x="47" y="160" width="82" height="13" rx="5" fill="#6c757d"/>
+    <circle cx="88" cy="103" r="14" fill="#ffd4b2" stroke="#d4956a" stroke-width="2"/>
+    <line x1="88" y1="117" x2="86" y2="153" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <line x1="81" y1="120" x2="52" y2="83" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <line x1="94" y1="120" x2="123" y2="83" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <line x1="80" y1="152" x2="58" y2="176" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <line x1="93" y1="152" x2="115" y2="176" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <path d="M152 52 L152 78" stroke="#f5576c" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M146 72 L152 80 L158 72" stroke="#f5576c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>`,
+
+  shoulderpress: `<svg width="160" height="200" viewBox="0 0 160 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="40" y="155" width="80" height="16" rx="7" fill="#8e9aaf"/>
+    <rect x="108" y="93" width="18" height="66" rx="7" fill="#8e9aaf"/>
+    <circle cx="80" cy="52" r="14" fill="#ffd4b2" stroke="#d4956a" stroke-width="2"/>
+    <line x1="80" y1="66" x2="80" y2="118" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <line x1="73" y1="80" x2="40" y2="83" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <line x1="40" y1="83" x2="33" y2="52" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <rect x="22" y="46" width="20" height="9" rx="3" fill="#555" opacity="0.7"/>
+    <line x1="87" y1="80" x2="120" y2="83" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <line x1="120" y1="83" x2="127" y2="52" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <rect x="118" y="46" width="20" height="9" rx="3" fill="#555" opacity="0.7"/>
+    <line x1="73" y1="118" x2="57" y2="158" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <line x1="87" y1="118" x2="103" y2="158" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <path d="M33 46 L28 24" stroke="#f5576c" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M22 28 L28 23 L33 30" stroke="#f5576c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M127 46 L132 24" stroke="#f5576c" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M138 28 L132 23 L127 30" stroke="#f5576c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>`,
+
+  situp: `<svg width="230" height="145" viewBox="0 0 230 145" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="118" width="214" height="9" rx="4" fill="#ddd"/>
+    <rect x="30" y="110" width="170" height="12" rx="5" fill="#a8d8ea" opacity="0.6"/>
+    <line x1="108" y1="114" x2="158" y2="112" stroke="#444" stroke-width="6.5" stroke-linecap="round"/>
+    <line x1="158" y1="112" x2="190" y2="118" stroke="#444" stroke-width="6.5" stroke-linecap="round"/>
+    <line x1="110" y1="120" x2="155" y2="118" stroke="#444" stroke-width="6.5" stroke-linecap="round"/>
+    <line x1="155" y1="118" x2="185" y2="124" stroke="#444" stroke-width="6.5" stroke-linecap="round"/>
+    <circle cx="157" cy="115" r="9" fill="#ffd4b2" stroke="#e74c3c" stroke-width="2"/>
+    <line x1="94" y1="112" x2="58" y2="72" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="47" cy="60" r="14" fill="#ffd4b2" stroke="#d4956a" stroke-width="2"/>
+    <line x1="53" y1="70" x2="73" y2="60" stroke="#444" stroke-width="3" stroke-linecap="round"/>
+    <line x1="43" y1="70" x2="63" y2="60" stroke="#444" stroke-width="3" stroke-linecap="round"/>
+    <path d="M28 102 Q16 80 33 63" stroke="#f5576c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M33 63 L26 68 M33 63 L38 70" stroke="#f5576c" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>`,
+
+  pushup: `<svg width="245" height="138" viewBox="0 0 245 138" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="118" width="228" height="9" rx="4" fill="#ddd"/>
+    <rect x="20" y="110" width="205" height="12" rx="5" fill="#a8d8ea" opacity="0.6"/>
+    <circle cx="168" cy="112" r="13" fill="#ffd4b2" stroke="#e74c3c" stroke-width="2.5"/>
+    <line x1="168" y1="112" x2="205" y2="116" stroke="#444" stroke-width="6.5" stroke-linecap="round"/>
+    <line x1="128" y1="84" x2="168" y2="112" stroke="#444" stroke-width="6.5" stroke-linecap="round"/>
+    <rect x="57" y="72" width="82" height="15" rx="7" fill="#f093fb" opacity="0.6"/>
+    <circle cx="38" cy="79" r="13" fill="#ffd4b2" stroke="#d4956a" stroke-width="2"/>
+    <line x1="65" y1="77" x2="45" y2="100" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <line x1="45" y1="100" x2="32" y2="116" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <line x1="103" y1="77" x2="122" y2="100" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <line x1="122" y1="100" x2="133" y2="116" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="30" cy="116" r="6" fill="#ffd4b2" stroke="#d4956a" stroke-width="1.5"/>
+    <circle cx="133" cy="116" r="6" fill="#ffd4b2" stroke="#d4956a" stroke-width="1.5"/>
+    <path d="M84 74 L84 50" stroke="#f5576c" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M78 56 L84 49 L90 56" stroke="#f5576c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>`,
+
+  running: `<img src="route.png" alt="런닝 경로 지도">`
+};
+
+function renderDays() {
+  document.getElementById('days-grid').innerHTML = DAYS.map(day => {
+    let req = 0;
+    return `<div class="day-card ${day.cls}">
+      <div class="card-header">
+        <div class="day-tag">${day.label}</div>
+        <div class="card-title">${day.title}</div>
+        <div class="card-subtitle">${day.subtitle}</div>
+      </div>
+      <div class="exercise-list">
+        ${day.exercises.map((ex, i) => {
+          const num = ex.optional ? '선택' : ++req;
+          return `<div class="exercise-item${ex.optional?' optional':''}" onclick="openLB(${day.day-1},${i})">
+            <div class="num-badge">${num}</div>
+            <div class="exercise-info">
+              <div class="ex-name">${ex.name}</div>
+              <div class="ex-chips">
+                <span class="chip weight">⚖️ ${ex.weight}</span>
+                <span class="chip reps">🔄 ${ex.reps}</span>
+                <span class="chip sets">📋 ${ex.sets}</span>
+              </div>
+            </div>
+            <span class="ex-arrow">›</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openLB(dIdx, eIdx) {
+  const day = DAYS[dIdx];
+  const ex = day.exercises[eIdx];
+  document.getElementById('lb-content').innerHTML = `
+    <div class="lb-header">
+      <span class="lb-day-tag" style="background:${day.tagBg}">${day.label} · ${day.title}</span>
+      <div class="lb-title">${ex.name}</div>
+      <div class="lb-stats">
+        <div class="stat-box"><span class="stat-val">${ex.weight}</span><span class="stat-lbl">무게</span></div>
+        <div class="stat-box"><span class="stat-val">${ex.reps}</span><span class="stat-lbl">횟수 / 거리</span></div>
+        <div class="stat-box"><span class="stat-val">${ex.sets}</span><span class="stat-lbl">세트</span></div>
+      </div>
+    </div>
+    <div class="lb-body">
+      <div class="muscle-tag">🎯 ${ex.muscle}</div>
+      <div class="lb-illus${ex.illust==='running'?' route-map':''}">${ILLUSTS[ex.illust] || ''}</div>
+      <div class="lb-section-title">운동 방법</div>
+      <ul class="lb-steps">
+        ${ex.steps.map((s,i) => `<li><span class="sn" style="background:${day.accent}">${i+1}</span><span>${s}</span></li>`).join('')}
+      </ul>
+      <div class="lb-warn">
+        <div class="lb-warn-title">주의사항</div>
+        <ul>${ex.cautions.map(c=>`<li>${c}</li>`).join('')}</ul>
+      </div>
+    </div>`;
+  document.getElementById('lb-overlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLB() {
+  document.getElementById('lb-overlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('lb-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeLB(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLB(); });
+
+renderDays();
+</script>
+</body>
+</html>
